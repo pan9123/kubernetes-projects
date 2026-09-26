@@ -283,6 +283,10 @@ curl -H "Host: app1.demo.local" http://$(minikube ip)
 ```
 
 Using browser:
+> **Note:** If you are practicing on a cloud-hosted VM (AWS EC2, Azure VM, GCP VM, etc.), this URL will not resolve directly from your local machine because the hostname is mapped only within the VM. In such cases, either:
+>
+> - Add the hostname entry to the VM's `/etc/hosts` file and test using `curl`, or
+> - Access the application using the Ingress IP and appropriate host header.
 
 ```text
 http://app1.demo.local
