@@ -39,32 +39,130 @@ ingress-traffic-routing/
 └── ingress.yaml
 ```
 
-## Resources Created
+---
 
-### Application 1
+# app1-deployment.yaml
 
-- Deployment: app1
-- Replicas: 2
-- Image: nginxdemos/hello
+```yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: app1
+  namespace: ingress-lab
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: app1
+  template:
+    metadata:
+      labels:
+        app: app1
+    spec:
+      containers:
+      - name: app1
+        image: nginxdemos/hello
+        ports:
+        - containerPort: 80
+```
 
-### Application 2
+---
 
-- Deployment: app2
-- Replicas: 2
-- Image: hashicorp/http-echo
+# app1-service.yaml
 
-### Services
+```yaml
+apiVersion: v1
+kind: Service
+metadata:
+  name: app1-service
+  namespace: ingress-lab
+spec:
+  selector:
+    app: app1
+  ports:
+  - port: 80
+    targetPort: 80
+  type: ClusterIP
+```
 
-- app1-service (ClusterIP)
-- app2-service (ClusterIP)
+---
 
-### Ingress
+# app2-deployment.yaml
 
-- Ingress Name: ingress-no-auth
-- Ingress Class: nginx
-- Host: app1.demo.local
+```yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: app2
+  namespace: ingress-lab
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: app2
+  template:
+    metadata:
+      labels:
+        app: app2
+    spec:
+      containers:
+      - name: app2
+        image: hashicorp/http-echo
+        args:
+        - "-text=Welcome to APP2"
+        ports:
+        - containerPort: 5678
+```
 
-## Prerequisites
+---
+
+# app2-service.yaml
+
+```yaml
+apiVersion: v1
+kind: Service
+metadata:
+  name: app2-service
+  namespace: ingress-lab
+spec:
+  selector:
+    app: app2
+  ports:
+  - port: 80
+    targetPort: 5678
+  type: ClusterIP
+```
+
+---
+
+# ingress.yaml
+
+```yaml
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: ingress-no-auth
+  namespace: ingress-lab
+
+spec:
+  ingressClassName: nginx
+
+  rules:
+  - host: app1.demo.local
+    http:
+      paths:
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: app1-service
+            port:
+              number: 80
+```
+
+---
+
+# Prerequisites
 
 - Ubuntu Linux
 - Minikube
@@ -83,13 +181,17 @@ Verify:
 kubectl get pods -n ingress-nginx
 ```
 
-## Create Namespace
+---
+
+# Create Namespace
 
 ```bash
 kubectl create namespace ingress-lab
 ```
 
-## Deploy Application Resources
+---
+
+# Deploy Resources
 
 ```bash
 kubectl apply -f app1-deployment.yaml
@@ -97,15 +199,13 @@ kubectl apply -f app1-service.yaml
 
 kubectl apply -f app2-deployment.yaml
 kubectl apply -f app2-service.yaml
-```
 
-## Deploy Ingress
-
-```bash
 kubectl apply -f ingress.yaml
 ```
 
-## Verify Resources
+---
+
+# Verification
 
 Check all resources:
 
@@ -117,12 +217,6 @@ Check services:
 
 ```bash
 kubectl get svc -n ingress-lab
-```
-
-Check pods:
-
-```bash
-kubectl get pods -n ingress-lab
 ```
 
 Check ingress:
@@ -137,21 +231,27 @@ Describe ingress:
 kubectl describe ingress ingress-no-auth -n ingress-lab
 ```
 
-## Sample Output
+Expected:
 
 ```bash
-kubectl get ingress -n ingress-lab
-
 NAME              CLASS   HOSTS             ADDRESS        PORTS   AGE
-ingress-no-auth   nginx   app1.demo.local   192.168.49.2   80      4m
+ingress-no-auth   nginx   app1.demo.local   192.168.49.2   80
 ```
 
-## Configure Host Mapping
+---
+
+# Configure Host Mapping
 
 Get Minikube IP:
 
 ```bash
 minikube ip
+```
+
+Example:
+
+```text
+192.168.49.2
 ```
 
 Edit hosts file:
@@ -160,15 +260,15 @@ Edit hosts file:
 sudo vi /etc/hosts
 ```
 
-Add the following entry:
+Add:
 
 ```text
 192.168.49.2 app1.demo.local
 ```
 
-Replace the IP address with your Minikube IP if different.
+---
 
-## Testing
+# Testing
 
 Using curl:
 
@@ -176,27 +276,51 @@ Using curl:
 curl http://app1.demo.local
 ```
 
-Or
+Or:
 
 ```bash
-curl -H "Host: app1.demo.local" http://192.168.49.2
+curl -H "Host: app1.demo.local" http://$(minikube ip)
 ```
 
-Using a browser:
+Using browser:
 
 ```text
 http://app1.demo.local
 ```
 
-## Learning Outcomes
+---
+
+# Sample Output
+
+```bash
+kubectl get all -n ingress-lab
+```
+
+```text
+NAME                        READY   STATUS    RESTARTS   AGE
+pod/app1-5c499bc58d-t8sf2   1/1     Running   0          16m
+pod/app1-5c499bc58d-t9h8g   1/1     Running   0          16m
+pod/app2-78779d7b49-tq97x   1/1     Running   0          16m
+pod/app2-78779d7b49-xl74q   1/1     Running   0          16m
+
+NAME                   TYPE        CLUSTER-IP      PORT(S)
+service/app1-service   ClusterIP   10.105.78.80    80/TCP
+service/app2-service   ClusterIP   10.99.12.181    80/TCP
+```
+
+---
+
+# Learning Outcomes
 
 - Created Kubernetes Deployments
 - Created ClusterIP Services
-- Configured NGINX Ingress Controller
-- Implemented Host-Based Routing
+- Deployed NGINX Ingress Controller
+- Configured Host-Based Routing
 - Verified Ingress Connectivity
-- Understood Service and Ingress Networking Concepts
+- Understood Kubernetes Service and Ingress Networking
 
-## Author
+---
+
+# Author
 
 **Pankaj Roy**
