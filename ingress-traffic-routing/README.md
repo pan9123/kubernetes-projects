@@ -135,6 +135,8 @@ spec:
 
 ---
 
+# Path-1: Basic Host-Based Ingress
+
 # ingress.yaml
 
 ```yaml
@@ -322,6 +324,179 @@ service/app2-service   ClusterIP   10.99.12.181    80/TCP
 - Configured Host-Based Routing
 - Verified Ingress Connectivity
 - Understood Kubernetes Service and Ingress Networking
+
+---
+
+# Part 2: Path-Based Routing
+
+In this implementation, a single Ingress resource routes incoming requests to different backend services based on the URL path.
+
+## Architecture
+
+```text
+                    NGINX Ingress
+                           |
+                      demo.local
+                           |
+          ---------------------------------
+          |                               |
+      /app1                           /app2
+          |                               |
+    app1-service                   app2-service
+          |                               |
+      App1 Pods                      App2 Pods
+```
+
+## Path-Based Routing Flow
+
+| URL | Backend Service |
+|------|----------------|
+| demo.local/app1 | app1-service |
+| demo.local/app2 | app2-service |
+
+---
+
+## path-based-ingress.yaml
+
+```yaml
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: path-based-ingress
+  namespace: ingress-lab
+
+spec:
+  ingressClassName: nginx
+
+  rules:
+  - host: demo.local
+    http:
+      paths:
+
+      - path: /app1
+        pathType: Prefix
+        backend:
+          service:
+            name: app1-service
+            port:
+              number: 80
+
+      - path: /app2
+        pathType: Prefix
+        backend:
+          service:
+            name: app2-service
+            port:
+              number: 80
+```
+
+---
+
+## Deploy Path-Based Ingress
+
+```bash
+kubectl apply -f path-based-ingress.yaml
+```
+
+Verify:
+
+```bash
+kubectl get ingress -n ingress-lab
+```
+
+Describe Ingress:
+
+```bash
+kubectl describe ingress path-based-ingress -n ingress-lab
+```
+
+---
+
+## Configure Host Mapping
+
+Get Minikube IP:
+
+```bash
+minikube ip
+```
+
+Add the following entry to the hosts file:
+
+```bash
+sudo vi /etc/hosts
+```
+
+```text
+192.168.49.2 demo.local
+```
+
+Replace the IP address with your Minikube IP if different.
+
+---
+
+## Testing
+
+Test Application 1:
+
+```bash
+curl http://demo.local/app1
+```
+
+Or:
+
+```bash
+curl -H "Host: demo.local" http://$(minikube ip)/app1
+```
+
+Expected Output:
+
+```text
+Nginx Demo Application Response
+```
+
+---
+
+Test Application 2:
+
+```bash
+curl http://demo.local/app2
+```
+
+Or:
+
+```bash
+curl -H "Host: demo.local" http://$(minikube ip)/app2
+```
+
+Expected Output:
+
+```text
+Welcome to APP2
+```
+
+---
+
+## Verification Commands
+
+```bash
+kubectl get ingress -n ingress-lab
+
+kubectl describe ingress path-based-ingress -n ingress-lab
+
+kubectl get svc -n ingress-lab
+
+kubectl get endpoints -n ingress-lab
+```
+
+---
+
+## Learning Outcomes
+
+- Implemented Path-Based Routing using NGINX Ingress
+- Routed traffic to multiple backend services using a single hostname
+- Configured URL-based traffic management
+- Verified backend service routing through Ingress
+- Understood how Kubernetes Ingress maps URL paths to services
 
 ---
 
