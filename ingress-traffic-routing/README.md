@@ -498,6 +498,148 @@ kubectl get endpoints -n ingress-lab
 - Verified backend service routing through Ingress
 - Understood how Kubernetes Ingress maps URL paths to services
 
+# Part 3: Wildcard Host Routing
+
+## Overview
+
+Wildcard Host Routing allows a single Ingress rule to handle requests from multiple subdomains without creating separate rules for each host.
+
+Instead of creating individual entries such as:
+
+```text
+dev.demo.local
+test.demo.local
+qa.demo.local
+prod.demo.local
+```
+
+a single wildcard host can be used:
+
+```text
+*.demo.local
+```
+
+This simplifies Ingress management and is commonly used for Development, Testing, QA, and Production environments.
+
+## Architecture
+
+```text
+                    NGINX Ingress
+                           |
+                     *.demo.local
+                           |
+                     app1-service
+                           |
+                        App1 Pods
+```
+
+## Wildcard Ingress Configuration
+
+### ingress.yaml
+
+```yaml
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: wildcard-ingress
+  namespace: ingress-lab
+
+spec:
+  ingressClassName: nginx
+
+  rules:
+  - host: "*.demo.local"
+    http:
+      paths:
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: app1-service
+            port:
+              number: 80
+```
+
+## Apply Configuration
+
+```bash
+kubectl apply -f ingress.yaml
+```
+
+## Verify Ingress
+
+```bash
+kubectl get ingress -n ingress-lab
+```
+
+Expected Output:
+
+```text
+NAME               CLASS   HOSTS           ADDRESS        PORTS
+wildcard-ingress   nginx   *.demo.local    192.168.49.2   80
+```
+
+## Configure Host Entries
+
+Edit the hosts file:
+
+```bash
+sudo vi /etc/hosts
+```
+
+Add:
+
+```text
+192.168.49.2 dev.demo.local
+192.168.49.2 test.demo.local
+192.168.49.2 qa.demo.local
+192.168.49.2 prod.demo.local
+```
+
+> Replace `192.168.49.2` with your Minikube IP if different.
+
+## Testing
+
+### Test Development Environment
+
+```bash
+curl http://dev.demo.local
+```
+
+### Test QA Environment
+
+```bash
+curl http://qa.demo.local
+```
+
+### Test Production Environment
+
+```bash
+curl http://prod.demo.local
+```
+
+### Alternative Testing Using Host Header
+
+```bash
+curl -H "Host: dev.demo.local" http://$(minikube ip)
+```
+
+```bash
+curl -H "Host: test.demo.local" http://$(minikube ip)
+```
+
+```bash
+curl -H "Host: prod.demo.local" http://$(minikube ip)
+```
+
+## Learning Outcomes
+
+- Implemented Wildcard Host Routing using NGINX Ingress
+- Configured a single Ingress rule for multiple subdomains
+- Reduced routing configuration complexity
+- Understood real-world use cases for Development, QA, and Production environments
+- Verified routing using custom host headers
+
 ---
 
 # Author
