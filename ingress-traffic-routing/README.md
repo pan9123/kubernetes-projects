@@ -170,17 +170,53 @@ spec:
 - Minikube
 - kubectl
 - NGINX Ingress Controller
-
+  
 ## Enable NGINX Ingress Controller
+
+> **Important:** Creating an Ingress resource (for example, `ingress.yaml`) and applying it using `kubectl apply -f ingress.yaml` is not enough. An Ingress resource is only a set of routing rules.
+>
+> To make those rules work, you must have an **Ingress Controller** running in the cluster. The Ingress Controller continuously watches Ingress resources and configures the required routing to forward incoming traffic to the appropriate Kubernetes **Services**, which then direct traffic to the backend Pods.
+>
+> Common Ingress Controllers include:
+>
+> - NGINX Ingress Controller
+> - Traefik
+> - HAProxy Ingress
+> - AWS Load Balancer Controller (ALB)
+> - Azure Application Gateway Ingress Controller (AGIC)
+>
+> Without an Ingress Controller, the Ingress resource exists in the cluster, but no traffic routing will occur.
 
 ```bash
 minikube addons enable ingress
 ```
 
-Verify:
+Verify that the NGINX Ingress Controller is running:
 
 ```bash
 kubectl get pods -n ingress-nginx
+```
+
+Expected Output:
+
+```text
+NAME                                        READY   STATUS    RESTARTS   AGE
+ingress-nginx-controller-xxxxx              1/1     Running   0          2m
+```
+
+### Traffic Flow
+
+```text
+Client Request
+      |
+      v
+Ingress Controller
+      |
+      v
+Kubernetes Service
+      |
+      v
+Application Pods
 ```
 
 ---
