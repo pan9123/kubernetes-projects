@@ -843,6 +843,11 @@ TLS:
 
 ## Testing
 
+> **Note:** Use **HTTPS** instead of **HTTP** to access the application, as TLS is enabled for this Ingress configuration.
+
+```text
+https://app1.demo.local
+
 Access the application using HTTPS:
 
 ```bash
@@ -865,4 +870,4 @@ curl -k -H "Host: app1.demo.local" https://$(minikube IP)
 
 # Author
 
-*Pankaj Roy*
+**Pankaj Roy**
