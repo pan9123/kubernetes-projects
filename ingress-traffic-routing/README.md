@@ -867,6 +867,265 @@ curl -k -H "Host: app1.demo.local" https://$(minikube IP)
 
 ---
 
+# Part 5: Basic Authentication
+
+## Overview
+
+Basic Authentication protects applications by requiring users to provide a valid username and password before accessing the application.
+
+In this lab, NGINX Ingress is configured to challenge users for credentials before forwarding traffic to the backend service.
+
+## Architecture
+
+```text
+                  User
+                    |
+          Username / Password
+                    |
+             NGINX Ingress
+                    |
+            app1.demo.local
+                    |
+              app1-service
+                    |
+                 App1 Pods
+```
+
+## Generate Authentication File
+
+Install the required package:
+
+```bash
+sudo apt update
+
+sudo apt install apache2-utils -y
+```
+
+Create a username and password:
+
+```bash
+htpasswd -c auth pankaj
+```
+
+Example Output:
+
+```text
+New password:
+Re-type new password:
+Adding password for user pankaj
+```
+
+Verify:
+
+```bash
+cat auth
+```
+
+Example:
+
+```text
+pankaj:$apr1$xxxxxxxxxxxxxxxxxxxxxxxx
+```
+
+---
+
+## Create Kubernetes Secret
+
+Create a secret from the generated authentication file:
+
+```bash
+kubectl create secret generic basic-auth \
+--from-file=auth \
+-n ingress-lab
+```
+
+Verify:
+
+```bash
+kubectl get secret -n ingress-lab
+```
+
+Output:
+
+```text
+NAME         TYPE                DATA   AGE
+basic-auth   Opaque              1      92s
+tls-secret   kubernetes.io/tls   2      51m
+```
+
+---
+
+## File: basic-auth-ingress.yaml
+
+```yaml
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: basic-auth-ingress
+  namespace: ingress-lab
+  annotations:
+    nginx.ingress.kubernetes.io/auth-type: basic
+    nginx.ingress.kubernetes.io/auth-secret: basic-auth
+    nginx.ingress.kubernetes.io/auth-realm: "Authentication Required"
+
+spec:
+  ingressClassName: nginx
+
+  rules:
+  - host: app1.demo.local
+    http:
+      paths:
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: app1-service
+            port:
+              number: 80
+```
+
+---
+
+## Deploy Authentication Ingress
+
+```bash
+kubectl apply -f basic-auth-ingress.yaml
+```
+
+Verify:
+
+```bash
+kubectl get ingress -n ingress-lab
+```
+
+Output:
+
+```text
+NAME                 CLASS   HOSTS             ADDRESS        PORTS   AGE
+basic-auth-ingress   nginx   app1.demo.local   192.168.49.2   80      4m3s
+```
+
+---
+
+## Verification
+
+Verify the authentication secret:
+
+```bash
+kubectl get secret basic-auth -n ingress-lab
+```
+
+Output:
+
+```text
+NAME         TYPE     DATA   AGE
+basic-auth   Opaque   1      9m30s
+```
+
+Verify all ingress resources:
+
+```bash
+kubectl get ing
+```
+
+Output:
+
+```text
+NAME                 CLASS   HOSTS             ADDRESS        PORTS   AGE
+basic-auth-ingress   nginx   app1.demo.local   192.168.49.2   80      4m38s
+```
+
+---
+
+## Testing Without Credentials
+
+Get Minikube IP:
+
+```bash
+minikube ip
+```
+
+Output:
+
+```text
+192.168.49.2
+```
+
+Send a request without authentication:
+
+```bash
+curl -I -H "Host: app1.demo.local" http://$(minikube ip)
+```
+
+Expected Output:
+
+```text
+HTTP/1.1 401 Unauthorized
+Date: Sat, 03 Oct 2026 07:46:59 GMT
+Content-Type: text/html
+Content-Length: 172
+Connection: keep-alive
+WWW-Authenticate: Basic realm="Authentication Required"
+```
+
+The `401 Unauthorized` response confirms that NGINX Ingress is successfully enforcing authentication.
+
+---
+
+## Testing With Credentials
+
+Send a request using valid credentials:
+
+```bash
+curl -u pankaj:<your-password> -H "Host: app1.demo.local" http://$(minikube ip)
+```
+
+Example:
+
+```bash
+curl -u pankaj:Password@123 -H "Host: app1.demo.local" http://$(minikube ip)
+```
+
+Expected Result:
+
+```text
+Application response from app1-service
+```
+
+A successful response confirms that:
+
+- Basic Authentication is working correctly.
+- Credentials are validated by NGINX Ingress.
+- Authenticated traffic is forwarded to the backend service.
+- Unauthorized users are blocked.
+
+---
+
+## Verification Commands
+
+```bash
+kubectl get ingress -n ingress-lab
+
+kubectl describe ingress basic-auth-ingress -n ingress-lab
+
+kubectl get secret basic-auth -n ingress-lab
+
+kubectl get svc -n ingress-lab
+```
+
+---
+
+## Learning Outcomes
+
+- Implemented Basic Authentication using NGINX Ingress
+- Generated credentials using htpasswd
+- Created a Kubernetes Secret for authentication
+- Protected applications with username and password authentication
+- Verified access control using authenticated and unauthenticated requests
+- Understood how NGINX Ingress enforces user authentication
+
+---
+
 
 # Author
 
