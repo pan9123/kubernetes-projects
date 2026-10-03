@@ -1,0 +1,25 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: tls-ingress
+  namespace: ingress-lab
+
+spec:
+  ingressClassName: nginx
+
+  tls:
+  - hosts:
+    - app1.demo.local
+    secretName: tls-secret
+
+  rules:
+  - host: app1.demo.local
+    http:
+      paths:
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: app1-service
+            port:
+              number: 80
