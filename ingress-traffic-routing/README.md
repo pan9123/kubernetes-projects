@@ -640,6 +640,226 @@ curl -H "Host: prod.demo.local" http://$(minikube ip)
 - Understood real-world use cases for Development, QA, and Production environments
 - Verified routing using custom host headers
 
+
+---
+
+# Part 4: TLS Configuration (HTTPS Ingress)
+
+## Overview
+
+Transport Layer Security (TLS) enables secure communication between the client and the application by encrypting traffic. In this lab, a self-signed certificate is used to secure traffic between the client and the NGINX Ingress Controller.
+
+Before TLS:
+
+```text
+User
+ |
+HTTP (Port 80)
+ |
+Ingress
+ |
+Application
+```
+
+After TLS:
+
+```text
+User
+ |
+HTTPS (Port 443)
+ |
+NGINX Ingress
+ |
+Application
+```
+
+## Architecture
+
+```text
+                    HTTPS Request
+                           |
+                     app1.demo.local
+                           |
+                    NGINX Ingress
+                           |
+                      TLS Secret
+                           |
+                     app1-service
+                           |
+                        App1 Pods
+```
+
+## Generate Self-Signed Certificate
+
+Create a directory for certificates:
+
+```bash
+mkdir certs
+cd certs
+```
+
+Generate the certificate and private key:
+
+```bash
+openssl req -x509 -nodes -days 365 \
+-newkey rsa:2048 \
+-keyout server.key \
+-out server.crt \
+-subj "/CN=app1.demo.local/O=ingress-lab"
+```
+
+Verify:
+
+```bash
+ls
+```
+
+Expected Output:
+
+```text
+server.crt
+server.key
+```
+
+---
+
+## Create TLS Secret
+
+```bash
+kubectl create secret tls tls-secret \
+--cert=server.crt \
+--key=server.key \
+-n ingress-lab
+```
+
+Verify:
+
+```bash
+kubectl get secret -n ingress-lab
+```
+
+Expected Output:
+
+```text
+NAME         TYPE                DATA   AGE
+tls-secret   kubernetes.io/tls   2      10s
+```
+
+---
+
+## File: tls-ingress.yaml
+
+```yaml
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: tls-ingress
+  namespace: ingress-lab
+
+spec:
+  ingressClassName: nginx
+
+  tls:
+  - hosts:
+    - app1.demo.local
+    secretName: tls-secret
+
+  rules:
+  - host: app1.demo.local
+    http:
+      paths:
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: app1-service
+            port:
+              number: 80
+```
+
+---
+
+## Deploy TLS Ingress
+
+```bash
+kubectl apply -f tls-ingress.yaml
+```
+
+Verify:
+
+```bash
+kubectl get ingress -n ingress-lab
+```
+
+Expected Output:
+
+```text
+NAME          CLASS   HOSTS             ADDRESS        PORTS     AGE
+tls-ingress   nginx   app1.demo.local   192.168.49.2   80,443    2m
+```
+
+---
+
+## Configure Host Mapping
+
+Get Minikube IP:
+
+```bash
+minikube ip
+```
+
+Example:
+
+```text
+192.168.49.2
+```
+
+Add the following entry to the hosts file:
+
+```bash
+sudo vi /etc/hosts
+```
+
+```text
+192.168.49.2 app1.demo.local
+```
+
+---
+
+## Verify TLS Configuration
+
+```bash
+kubectl describe ingress tls-ingress -n ingress-lab
+```
+
+Expected Output:
+
+```text
+TLS:
+  tls-secret terminates app1.demo.local
+```
+
+---
+
+## Testing
+
+Access the application using HTTPS:
+
+```bash
+curl -k https://app1.demo.local
+```
+
+Or:
+
+```bash
+curl -vk https://app1.demo.local
+```
+
+### Alternative Testing
+
+```bash
+curl -k -H "Host: app1.demo.local" https://$(minikube
+
 ---
 
 
