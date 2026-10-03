@@ -864,7 +864,7 @@ curl -vk https://app1.demo.local
 
 ```bash
 curl -k -H "Host: app1.demo.local" https://$(minikube IP)
-
+```
 ---
 
 # Part 5: Basic Authentication
