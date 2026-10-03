@@ -193,6 +193,8 @@ minikube addons enable ingress
 
 Verify that the NGINX Ingress Controller is running:
 
+Note : Ingress Controller in also a Pod
+
 ```bash
 kubectl get pods -n ingress-nginx
 ```
