@@ -858,11 +858,11 @@ curl -vk https://app1.demo.local
 ### Alternative Testing
 
 ```bash
-curl -k -H "Host: app1.demo.local" https://$(minikube
+curl -k -H "Host: app1.demo.local" https://$(minikube)
 
 ---
 
 
 # Author
 
-**Pankaj Roy**
+*Pankaj Roy*
