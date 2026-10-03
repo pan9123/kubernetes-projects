@@ -292,6 +292,8 @@ ingress-no-auth   nginx   app1.demo.local   192.168.49.2   80
 
 # Configure Host Mapping
 
+> **Note:** Host mapping is extremely important in real-world and production environments. It enables users to access applications using meaningful domain names instead of IP addresses. In enterprise environments, this is typically managed using DNS servers rather than manually updating the `/etc/hosts` file.
+
 Get Minikube IP:
 
 ```bash
