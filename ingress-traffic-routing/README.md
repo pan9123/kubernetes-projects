@@ -205,6 +205,16 @@ Expected Output:
 NAME                                        READY   STATUS    RESTARTS   AGE
 ingress-nginx-controller-xxxxx              1/1     Running   0          2m
 ```
+## Check NGINX Ingress Controller Logs
+
+To view the logs of the NGINX Ingress Controller, run:
+
+```bash
+kubectl logs ingress-nginx-controller-cc8496874-trh6c -n ingress-nginx
+```
+
+> **Note:** This command displays NGINX Ingress Controller logs, including Ingress resource synchronization events, configuration updates, backend service mappings, and request routing information. It is useful for troubleshooting Ingress-related issues and verifying that the Ingress Controller has successfully processed the Ingress resource.
+``
 
 ### Traffic Flow
 
