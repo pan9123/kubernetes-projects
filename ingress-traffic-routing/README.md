@@ -135,7 +135,7 @@ spec:
 
 ---
 
-# Path-1: Basic Host-Based Ingress
+# Part 1: Basic Host-Based Ingress
 
 # ingress.yaml
 
