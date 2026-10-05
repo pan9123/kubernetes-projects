@@ -17,5 +17,11 @@ spec:
       containers:
       - name: python-sample-app
         image: pankajf5/python-sample-app-demo:v1
+        env:
+          - name: DB-PORT
+            valueFrom:
+              configMapKeyRef:
+               name: test-cm
+               key: db-port 
         ports:
         - containerPort: 8000
