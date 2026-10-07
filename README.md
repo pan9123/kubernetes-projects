@@ -279,7 +279,7 @@ NAME       STATUS   ROLES           AGE   VERSION
 minikube   Ready    control-plane   XXm   v1.xx.x
 ```
 
-## Option 4: ## For Windows Users
+## Option 4: For Windows Users
  
 ### Step 1: Install WSL (Windows Subsystem for Linux)
  
