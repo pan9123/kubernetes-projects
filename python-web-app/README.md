@@ -625,7 +625,7 @@ Before starting, make sure you have:
 
 ---
 
-# Step 1: Verify Minikube Cluster
+# Part 1: Verify Minikube Cluster
 
 ```bash
 kubectl get nodes
@@ -633,7 +633,7 @@ kubectl get nodes
 
 ---
 
-# Step 2: Deploy Your Application
+# Part 2: Deploy Your Application
 
 ```bash
 kubectl get deployment
@@ -650,7 +650,7 @@ python-django-sample-app   NodePort   10.105.212.31  80:30007/TCP
 
 ---
 
-# Step 3: Install Kubeshark
+# Part 3: Install Kubeshark
 
 Download Kubeshark:
 
@@ -678,7 +678,7 @@ kubeshark version
 
 ---
 
-# Step 4: Start Kubeshark
+# Part 4: Start Kubeshark
 
 ```bash
 kubeshark tap
@@ -702,7 +702,7 @@ All pods should be in the Running state.
 
 ---
 
-# Step 5: Port Forward Kubeshark UI
+# Part 5: Port Forward Kubeshark UI
 
 ```bash
 kubectl port-forward svc/kubeshark-front 8899:80
@@ -718,7 +718,7 @@ Keep this terminal running.
 
 ---
 
-# Step 6: Access Kubeshark from Windows
+# Part 6: Access Kubeshark from Windows
 
 Create SSH tunnel:
 
@@ -734,7 +734,7 @@ ssh -i $HOME\Downloads\123pan.pem -L 9999:localhost:8899 ubuntu@34.xxx.xxx.xxx
 
 ---
 
-# Step 7: Open the Kubeshark Dashboard
+# Part 7: Open the Kubeshark Dashboard
 
 ```text
 http://localhost:9999
@@ -742,7 +742,7 @@ http://localhost:9999
 
 ---
 
-# Step 8: Generate Traffic
+# Part 8: Generate Traffic
 
 Get Minikube IP:
 
