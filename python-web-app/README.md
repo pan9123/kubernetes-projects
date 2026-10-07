@@ -763,3 +763,725 @@ curl http://192.168.49.2:30007/demo
 Kubeshark is a powerful Kubernetes traffic analyzer that allows engineers to inspect real-time communication among pods and services. When combined with Minikube on AWS EC2, it provides an excellent learning environment for mastering Kubernetes networking and observability concepts.
 
 For anyone preparing for Kubernetes, DevOps, SRE, or Platform Engineering roles, Kubeshark is an excellent tool to understand the network layer of containerized applications and troubleshoot issues faster.
+
+----
+
+---
+
+# Step 12: ConfigMap as Environment Variable
+
+## Why ConfigMaps?
+
+> **Note:** ConfigMaps are used to store non-sensitive application configuration outside the container image. This allows configuration changes without rebuilding the application.
+
+Create the ConfigMap manifest.
+
+**configmap.yaml**
+
+```yaml
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: test-cm
+data:
+  db-port: "3306"
+```
+
+Apply the ConfigMap:
+
+```bash
+kubectl apply -f configmap.yaml
+```
+
+Output:
+
+```console
+configmap/test-cm created
+```
+
+Verify the ConfigMap:
+
+```bash
+kubectl get configmap
+```
+
+Output:
+
+```console
+NAME      DATA   AGE
+test-cm   1      5s
+```
+
+Update the Deployment to consume the ConfigMap as an environment variable.
+
+**deployment.yaml**
+
+```yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: sample-python-app
+  labels:
+    app: sample-python-app
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: sample-python-app
+  template:
+    metadata:
+      labels:
+        app: sample-python-app
+    spec:
+      containers:
+      - name: python-sample-app
+        image: pankajf5/python-sample-app-demo:v1
+        env:
+          - name: DB-PORT
+            valueFrom:
+              configMapKeyRef:
+                name: test-cm
+                key: db-port
+        ports:
+        - containerPort: 8000
+```
+
+Apply the Deployment:
+
+```bash
+kubectl apply -f deployment.yaml
+```
+
+If the ConfigMap is missing, Pods will fail with:
+
+```console
+Error: configmap "test-cm" not found
+```
+
+Verify Pods:
+
+```bash
+kubectl get pods
+```
+
+Output:
+
+```console
+NAME                                READY   STATUS    RESTARTS   AGE
+sample-python-app-8585ccf95-7bqvc   1/1     Running   0          3m56s
+sample-python-app-8585ccf95-n6qxg   1/1     Running   0          3m56s
+```
+
+Verify the environment variable:
+
+```bash
+kubectl exec -it <pod-name> -- env | grep DB
+```
+
+Output:
+
+```console
+DB-PORT=3306
+```
+
+---
+
+# Step 13: ConfigMap as Volume Mount
+
+## Why Volume Mounts?
+
+> **Note:** ConfigMaps can also be mounted as files inside a Pod. Each key becomes a file and the value becomes the file content.
+
+Update the Deployment:
+
+```yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: sample-python-app
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: sample-python-app
+  template:
+    metadata:
+      labels:
+        app: sample-python-app
+    spec:
+      containers:
+      - name: python-sample-app
+        image: pankajf5/python-sample-app-demo:v1
+        volumeMounts:
+        - name: db-connection
+          mountPath: "/opt"
+        ports:
+        - containerPort: 8000
+
+      volumes:
+      - name: db-connection
+        configMap:
+          name: test-cm
+```
+
+Apply the Deployment:
+
+```bash
+kubectl apply -f deployment.yaml
+```
+
+Verify mounted files:
+
+```bash
+kubectl exec -it <pod-name> -- ls -l /opt
+```
+
+Output:
+
+```console
+db-port
+```
+
+Verify the mounted value:
+
+```bash
+kubectl exec -it <pod-name> -- cat /opt/db-port
+```
+
+Output:
+
+```console
+3306
+```
+
+### Architecture
+
+```text
+ConfigMap
+   │
+   ├── db-port = 3306
+   │
+   ▼
+Volume Mount
+   │
+   ▼
+/opt/db-port
+   │
+   ▼
+Application Container
+```
+
+---
+
+# Step 13.1: Verify ConfigMap Updates Through Volume Mount
+
+## Objective
+
+> **Note:** One of the major advantages of ConfigMaps is that configuration can be updated without rebuilding the Docker image.
+
+Verify the current value:
+
+```bash
+kubectl exec -it <pod-name> -- cat /opt/db-port
+```
+
+Output:
+
+```console
+3306
+```
+
+Edit the ConfigMap:
+
+```bash
+kubectl edit configmap test-cm
+```
+
+Change:
+
+```yaml
+data:
+  db-port: "3306"
+```
+
+to:
+
+```yaml
+data:
+  db-port: "5432"
+```
+
+Verify ConfigMap:
+
+```bash
+kubectl get configmap test-cm -o yaml
+```
+
+Output:
+
+```yaml
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: test-cm
+data:
+  db-port: "5432"
+```
+
+Wait 30 to 60 seconds and verify again:
+
+```bash
+kubectl exec -it <pod-name> -- cat /opt/db-port
+```
+
+Output:
+
+```console
+5432
+```
+
+✅ Kubernetes automatically updated the mounted file inside the running container.
+
+---
+
+## Verify Environment Variable Behavior
+
+Check the environment variable:
+
+```bash
+kubectl exec -it <pod-name> -- env | grep DB
+```
+
+Output:
+
+```console
+DB-PORT=3306
+```
+
+Even though the ConfigMap value was changed to:
+
+```console
+5432
+```
+
+the environment variable still shows:
+
+```console
+3306
+```
+
+### Why?
+
+```text
+ConfigMap
+       │
+       ├── Environment Variable
+       │      │
+       │      ▼
+       │   Loaded only during Pod startup
+       │
+       └── Volume Mount
+              │
+              ▼
+         Automatically refreshed
+         inside running containers
+```
+
+Restart the deployment:
+
+```bash
+kubectl rollout restart deployment sample-python-app
+```
+
+Verify again:
+
+```bash
+kubectl exec -it <new-pod-name> -- env | grep DB
+```
+
+Output:
+
+```console
+DB-PORT=5432
+```
+
+### Key Learning
+
+- ConfigMap Volume Mounts update automatically.
+- ConfigMap Environment Variables do not update automatically.
+- Pods must be restarted when ConfigMap values are consumed using environment variables.
+
+---
+
+# Step 14: Secret as Environment Variable
+
+## Why Secrets?
+
+> **Note:** Secrets are used to store sensitive information such as passwords, API keys, tokens, certificates, and credentials.
+
+Create the Secret manifest.
+
+**secret.yaml**
+
+```yaml
+apiVersion: v1
+kind: Secret
+metadata:
+  name: db-secret
+type: Opaque
+stringData:
+  db-user: admin
+  db-password: Password@123
+```
+
+Apply the Secret:
+
+```bash
+kubectl apply -f secret.yaml
+```
+
+Output:
+
+```console
+secret/db-secret created
+```
+
+Verify the Secret:
+
+```bash
+kubectl get secrets
+```
+
+Output:
+
+```console
+NAME        TYPE     DATA   AGE
+db-secret   Opaque   2      5s
+```
+
+Update Deployment:
+
+```yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: sample-python-app
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: sample-python-app
+  template:
+    metadata:
+      labels:
+        app: sample-python-app
+    spec:
+      containers:
+      - name: python-sample-app
+        image: pankajf5/python-sample-app-demo:v1
+
+        env:
+        - name: DB_USER
+          valueFrom:
+            secretKeyRef:
+              name: db-secret
+              key: db-user
+
+        - name: DB_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: db-secret
+              key: db-password
+
+        ports:
+        - containerPort: 8000
+```
+
+Apply the Deployment:
+
+```bash
+kubectl apply -f deployment.yaml
+```
+
+Verify environment variables:
+
+```bash
+kubectl exec -it <pod-name> -- env | grep DB
+```
+
+Output:
+
+```console
+DB_USER=admin
+DB_PASSWORD=Password@123
+```
+
+### Architecture
+
+```text
+Secret
+├── db-user
+└── db-password
+       │
+       ▼
+secretKeyRef
+       │
+       ▼
+Environment Variables
+├── DB_USER
+└── DB_PASSWORD
+       │
+       ▼
+Application Container
+```
+
+---
+
+# Step 15: Secret as Volume Mount
+
+## Secret Volume Mount
+
+> **Note:** Kubernetes can mount Secret data as files inside a container. This approach is commonly used for certificates, keys, passwords, and application credentials.
+
+Create the Secret:
+
+**secret.yaml**
+
+```yaml
+apiVersion: v1
+kind: Secret
+metadata:
+  name: db-secret
+type: Opaque
+stringData:
+  db-user: admin
+  db-password: Password@123
+```
+
+Update Deployment:
+
+```yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: sample-python-app
+  labels:
+    app: sample-python-app
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: sample-python-app
+  template:
+    metadata:
+      labels:
+        app: sample-python-app
+    spec:
+      containers:
+      - name: python-sample-app
+        image: pankajf5/python-sample-app-demo:v1
+
+        volumeMounts:
+        - name: db-secret-volume
+          mountPath: "/opt/secrets"
+          readOnly: true
+
+        ports:
+        - containerPort: 8000
+
+      volumes:
+      - name: db-secret-volume
+        secret:
+          secretName: db-secret
+```
+
+Apply the Deployment:
+
+```bash
+kubectl apply -f deployment.yaml
+```
+
+Verify mounted files:
+
+```bash
+kubectl exec -it <pod-name> -- ls -l /opt/secrets
+```
+
+Output:
+
+```console
+db-password
+db-user
+```
+
+Display Secret values:
+
+```bash
+kubectl exec -it <pod-name> -- cat /opt/secrets/db-user
+```
+
+Output:
+
+```console
+admin
+```
+
+```bash
+kubectl exec -it <pod-name> -- cat /opt/secrets/db-password
+```
+
+Output:
+
+```console
+Password@123
+```
+
+### Architecture
+
+```text
+Secret
+├── db-user
+└── db-password
+       │
+       ▼
+Secret Volume
+       │
+       ▼
+/opt/secrets/
+├── db-user
+└── db-password
+       │
+       ▼
+Application Container
+```
+
+---
+
+# Step 15.1: Verify Secret Updates Through Volume Mount
+
+## Objective
+
+> **Note:** Similar to ConfigMaps, Secret volumes can reflect updates without rebuilding the Docker image.
+
+Verify the current secret value:
+
+```bash
+kubectl exec -it <pod-name> -- cat /opt/secrets/db-password
+```
+
+Output:
+
+```console
+Password@123
+```
+
+Edit the Secret:
+
+```bash
+kubectl edit secret db-secret
+```
+
+Update the value and save.
+
+Verify Secret:
+
+```bash
+kubectl get secret db-secret
+```
+
+Wait 30 to 60 seconds and verify again:
+
+```bash
+kubectl exec -it <pod-name> -- cat /opt/secrets/db-password
+```
+
+Output:
+
+```console
+NewPassword@123
+```
+
+✅ The mounted Secret file reflects the latest value.
+
+---
+
+## Verify Environment Variable Behavior
+
+Check the environment variables:
+
+```bash
+kubectl exec -it <pod-name> -- env | grep DB
+```
+
+Output:
+
+```console
+DB_USER=admin
+DB_PASSWORD=Password@123
+```
+
+The environment variable still contains the old value.
+
+Restart Deployment:
+
+```bash
+kubectl rollout restart deployment sample-python-app
+```
+
+Verify again:
+
+```bash
+kubectl exec -it <new-pod-name> -- env | grep DB
+```
+
+Output:
+
+```console
+DB_PASSWORD=NewPassword@123
+```
+
+### Key Learning
+
+- Secret Volume Mounts can reflect updated values.
+- Secret Environment Variables do not update automatically.
+- Pods must be restarted to consume updated Secret values exposed as environment variables.
+- Secrets should be used for passwords, API keys, certificates, and tokens.
+- ConfigMaps should be used for non-sensitive configuration.
+
+---
+
+# ConfigMap vs Secret
+
+```text
+ConfigMap
+├── Non-sensitive data
+├── Port numbers
+├── URLs
+├── Feature flags
+└── Application configuration
+
+Secret
+├── Passwords
+├── API Keys
+├── Access Tokens
+├── Certificates
+└── Sensitive Information
+```
+
+---
+
+# Key Learnings
+
+- ConfigMaps store non-sensitive application configuration.
+- Secrets store sensitive application data.
+- ConfigMaps can be consumed as Environment Variables.
+- ConfigMaps can be consumed as Volume Mounts.
+- Secrets can be consumed as Environment Variables.
+- Secrets can be consumed as Volume Mounts.
+- ConfigMap Volume Mounts update automatically.
+- Secret Volume Mounts can reflect updated values.
+- Environment Variables require Pod restart to consume updated ConfigMaps or Secrets.
+- Applications should never hardcode configuration or credentials.
+- Separating configuration and secrets from application code is a Kubernetes best practice.
+
+---
