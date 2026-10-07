@@ -60,7 +60,7 @@ ssh -i my-key.pem ubuntu@<PUBLIC-IP>
 | VM Size | Standard_B2s |
 | vCPU | 2 |
 | RAM | 4 GB |
-| Storage | 30 GB |
+| Storage | 20 GB |
 
 ### Create Azure VM
 
