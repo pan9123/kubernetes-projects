@@ -279,6 +279,225 @@ NAME       STATUS   ROLES           AGE   VERSION
 minikube   Ready    control-plane   XXm   v1.xx.x
 ```
 
+## Option 4: ## For Windows Users
+ 
+### Step 1: Install WSL (Windows Subsystem for Linux)
+ 
+Open PowerShell as Administrator and run:
+ 
+```bash
+wsl --install
+```
+ 
+Restart the system after installation completes.
+ 
+Verify WSL installation:
+ 
+```bash
+wsl --status
+```
+ 
+Check the installed Linux distribution:
+ 
+```bash
+wsl -l -v
+```
+ 
+Example Output:
+ 
+```console
+NAME STATE VERSION
+* Ubuntu Running 2
+```
+ 
+---
+ 
+### Step 2: Update Ubuntu Packages
+ 
+Open the Ubuntu terminal and run:
+ 
+```bash
+sudo apt update
+sudo apt upgrade -y
+```
+ 
+---
+ 
+### Step 3: Install Docker
+ 
+Install Docker dependencies:
+ 
+```bash
+sudo apt update
+sudo apt install -y apt-transport-https ca-certificates curl software-properties-common
+```
+ 
+Install Docker:
+ 
+```bash
+curl -fsSL https://get.docker.com -o get-docker.sh
+sudo sh get-docker.sh
+```
+ 
+Add the current user to the Docker group:
+ 
+```bash
+sudo usermod -aG docker $USER
+```
+ 
+Apply group changes:
+ 
+```bash
+newgrp docker
+```
+ 
+Verify Docker:
+ 
+```bash
+docker --version
+docker ps
+```
+ 
+---
+ 
+### Step 4: Install kubectl
+ 
+Download kubectl:
+ 
+```bash
+curl -LO "https://dl.k8s.io/release/$(curl -L -s https://dl.k8s.io/release/stable.txt)/bin/linux/amd64/kubectl"
+```
+ 
+Install kubectl:
+ 
+```bash
+sudo install -o root -g root -m 0755 kubectl /usr/local/bin/kubectl
+```
+ 
+Verify installation:
+ 
+```bash
+kubectl version --client
+```
+ 
+---
+ 
+### Step 5: Install Minikube
+ 
+Download Minikube:
+ 
+```bash
+curl -LO https://storage.googleapis.com/minikube/releases/latest/minikube-linux-amd64
+```
+ 
+Install Minikube:
+ 
+```bash
+sudo install minikube-linux-amd64 /usr/local/bin/minikube
+```
+ 
+Verify installation:
+ 
+```bash
+minikube version
+```
+ 
+---
+ 
+### Step 6: Start Minikube
+ 
+Start Minikube using Docker driver:
+ 
+```bash
+minikube start --driver=docker
+```
+ 
+Verify cluster:
+ 
+```bash
+kubectl get nodes
+```
+ 
+Example Output:
+ 
+```console
+NAME STATUS ROLES AGE VERSION
+minikube Ready control-plane 2m v1.xx.x
+```
+ 
+Verify Minikube:
+ 
+```bash
+minikube status
+```
+ 
+---
+ 
+### Step 7: Enable Useful Add-ons
+ 
+Enable Kubernetes Dashboard:
+ 
+```bash
+minikube addons enable dashboard
+```
+ 
+Enable Metrics Server:
+ 
+```bash
+minikube addons enable metrics-server
+```
+ 
+Verify:
+ 
+```bash
+minikube addons list
+```
+ 
+---
+ 
+## For AWS EC2 Ubuntu Users
+ 
+Launch an Ubuntu EC2 instance and install:
+ 
+- Docker
+- kubectl
+- Minikube
+ 
+Verify cluster:
+ 
+```bash
+kubectl get nodes
+```
+ 
+Expected Output:
+ 
+```console
+NAME STATUS ROLES AGE VERSION
+minikube Ready control-plane 2m v1.xx.x
+```
+ 
+---
+ 
+## Verify Environment
+ 
+Before proceeding with this project, ensure the following commands work successfully:
+ 
+```bash
+docker --version
+kubectl version --client
+minikube version
+kubectl get nodes
+```
+ 
+Expected Output:
+ 
+```console
+NAME STATUS ROLES AGE VERSION
+minikube Ready control-plane 10m v1.xx.x
+```
+ 
+---
+ 
 At this point, your Kubernetes cluster is ready and you can proceed with:
 
 - Deployments
