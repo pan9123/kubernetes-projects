@@ -455,14 +455,6 @@ minikube addons list
  
 ---
  
-## For AWS EC2 Ubuntu Users
- 
-Launch an Ubuntu EC2 instance and install:
- 
-- Docker
-- kubectl
-- Minikube
- 
 Verify cluster:
  
 ```bash
